@@ -1,0 +1,171 @@
+<head>
+<style>
+    #drone{
+        background-color: blueviolet
+    }
+    svg{
+        position: absolute
+    }
+</style>
+<!-- development version, includes helpful console warnings -->
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+<body onkeydown="keyEvent(true)" onkeyup="keyEvent(false)">
+<div id="drone">
+    x {{x}}<br />
+    y {{y}}<br />
+    speedX {{speedX}}<br />
+    speedY {{speedY}}<br />
+    <span v-if="power">Power on</span>
+    <svg width="100" height="100"
+    v-bind:style="{left:x, bottom: y}">
+        <rect width="100" height="100" 
+        style="background-color: red" />
+    </svg>
+</div>
+<script>
+    const ALMOST_60FPS = 16;
+
+    const GRAVITY = 0.5;
+    const SPEED_MIN = 0;
+    const SPEED_MAX = 10;
+    const ACCELERATION = 1;
+    const STABILIZE_SPEED = 0.25;
+
+    var appDrone = new Vue({
+        el: '#drone',
+        data: {
+            power: true,
+            x: 0,
+            y: 0,
+            speedX: 0,
+            speedY: 0,
+            left: false,
+            up: false,
+            right: false,
+            down: false
+        },
+        methods: {
+            stabilizeX: function(){
+                if(this.speedX > SPEED_MIN){
+                    this.setSpeedX(this.speedX - STABILIZE_SPEED);
+                }else if(this.speedX < SPEED_MIN){
+                    this.setSpeedX(this.speedX + STABILIZE_SPEED);
+                }
+            },
+            stabilizeY: function(){
+                if(this.speedY > SPEED_MIN){
+                    this.setSpeedY(this.speedY - STABILIZE_SPEED);
+                }else if(this.speedY < SPEED_MIN){
+                    this.setSpeedY(this.speedY + STABILIZE_SPEED);
+                }
+            },
+            updateX: function(){
+                this.x += this.speedX;
+                setTimeout(this.updateX, ALMOST_60FPS);
+            },
+            updateY: function(){
+                this.y += this.speedY;
+                setTimeout(this.updateY, ALMOST_60FPS);
+            },
+            setSpeedX: function(speed){
+                if(speed < (-SPEED_MAX)){
+                    this.speedX = -SPEED_MAX;
+                }else if(speed > SPEED_MAX){
+                    this.speedX = SPEED_MAX;
+                }else{
+                    this.speedX = speed;
+                }
+            },
+            setSpeedY: function(speed){
+                if(speed < (-SPEED_MAX)){
+                    this.speedY = -SPEED_MAX;
+                }else if(speed > SPEED_MAX){
+                    this.speedY = SPEED_MAX;
+                }else{
+                    this.speedY = speed;
+                }
+            },
+            isIdleX: function(){
+                return (this.power) && 
+                (!this.left) && (!this.right)
+            },
+            isIdleY: function(){
+                return (this.power) && 
+                (!this.up) &&(!this.down);
+            }
+        }
+    });
+
+    appDrone.updateX();
+    appDrone.updateY();
+
+    function setSpeed(){
+        if(appDrone.left){
+            appDrone.setSpeedX(appDrone.speedX - ACCELERATION);
+        }
+
+        if(appDrone.right){
+            appDrone.setSpeedX(appDrone.speedX + ACCELERATION);
+        }
+
+        if(appDrone.up){
+            appDrone.setSpeedY(appDrone.speedY + ACCELERATION);
+        }
+
+        if(!appDrone.power){
+            appDrone.setSpeedY(appDrone.speedY - GRAVITY);
+        }else if(appDrone.down){
+            appDrone.setSpeedY(appDrone.speedY - ACCELERATION);
+        }
+
+        if(appDrone.isIdleX()){
+            appDrone.stabilizeX();
+        }
+        if(appDrone.isIdleY()){
+            appDrone.stabilizeY();
+        }
+
+        setTimeout(setSpeed, ALMOST_60FPS);
+    }
+    setSpeed();
+
+    const ARRAY_CODE = {
+        enter: 13,
+        left: 37,
+        up: 38,
+        right: 39,
+        down: 40
+    }
+    function keyEvent(isKeyDown){
+        var keyCode = event.keyCode;
+        if(keyCode == ARRAY_CODE.enter){
+            if(isKeyDown){
+                appDrone.power = !appDrone.power;
+            }
+        }
+
+        if(!appDrone.power){
+            appDrone.left = false;
+            appDrone.up = false;
+            appDrone.right = false;
+            appDrone.down = false;
+            return;
+        }
+
+        switch(keyCode){
+        case ARRAY_CODE.left:
+            appDrone.left = isKeyDown;
+            break;
+        case ARRAY_CODE.up:
+            appDrone.up = isKeyDown;
+            break;
+        case ARRAY_CODE.right:
+            appDrone.right = isKeyDown;
+            break;
+        case ARRAY_CODE.down:
+            appDrone.down = isKeyDown;
+        }
+    }
+</script>
+</body>
