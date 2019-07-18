@@ -1,21 +1,29 @@
 <head>
-<style>
-    #drone{
-        background-color: blueviolet
-    }
-    svg{
-        position: absolute
-    }
-</style>
 <!-- development version, includes helpful console warnings -->
 <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
 </head>
 <body>
+<div id="field">
+    <!-- Floor -->
+    <thing v-bind:x="10" v-bind:y="-1" 
+    v-bind:w="1300" v-bind:h="10" 
+    v-bind:rgba="{r: 179, g: 255, b: 102, a: 1}"></thing>
+    <!-- Left side wall -->
+    <thing v-bind:x="1" v-bind:y="10" 
+    v-bind:w="10" v-bind:h="660" 
+    v-bind:rgba="{r: 179, g: 255, b: 102, a: 1}"></thing>
+    <!-- Right side wall -->
+    <thing v-bind:x="1310" v-bind:y="10" 
+    v-bind:w="10" v-bind:h="660" 
+    v-bind:rgba="{r: 179, g: 255, b: 102, a: 1}"></thing>
+    <!-- Ceiling -->
+    <thing v-bind:x="10" v-bind:y="660" 
+    v-bind:w="1300" v-bind:h="10" 
+    v-bind:rgba="{r: 179, g: 255, b: 102, a: 1}"></thing>
+</div>
 <div id="drone">
         <drone-info v-bind:object="this"></drone-info>
         <drone v-bind:object="this"></drone>
-        <drone v-bind:object="this" v-bind:style="{left: -x + 400, bottom: -y + 300}"></drone>
-    </div>
 </div>
 <script>
     document.onkeydown = function(){
@@ -32,6 +40,8 @@
     const SPEED_MAX = 10;
     const ACCELERATION = 1;
     const STABILIZE_SPEED = 0.25;
+    const ENERGY_LOSS_RATE = 0.25;
+    const PERCENT_100 = 1;
 
     const ARRAY_CODE = {
         spacebar: 32,
@@ -41,9 +51,47 @@
         down: 40
     }
 
+    var objectLocations = [];
+
+    Vue.component('thing', {
+        props: ['x', 'y', 'w', 'h', 'rgba'],
+        data: function(){ 
+            return {
+                styleObjectSvg: {
+                    position: 'absolute',
+                    width: this.w,
+                    height: this.h,
+                    left: this.x,
+                    bottom: this.y
+                },
+                styleObjectShape: {
+                    width: this.w,
+                    height: this.h,
+                    left: this.x,
+                    bottom: this.y,
+                    fill: 'rgba(' + 
+                    this.rgba.r + ', ' + 
+                    this.rgba.g + ', ' + 
+                    this.rgba.b + ', ' +
+                    this.rgba.a + ')'
+                }
+            }
+        },
+        template: '<svg v-bind:style="styleObjectSvg">' +
+        '<rect v-bind:style="styleObjectShape"' +
+        '/></svg>'
+    });
+
     Vue.component('drone-info', {
         props: ['object'],
-        template: '<div>x {{object.x}}<br />' + 
+        data: function(){
+            return {
+                styleObject: {
+                    backgroundColor: 'blueviolet'
+                }
+            }
+        },
+        template: '<div v-bind:style="styleObject">x {{object.x}}<br />' + 
         'y {{object.y}}<br />' +
         'speedX {{object.speedX}}<br />' +
         'speedY {{object.speedY}}<br />' +
@@ -52,46 +100,140 @@
 
     Vue.component('drone', {
         props: ['object'],
-        template: '<svg width="100" height="100" ' +
-        'v-bind:style="{left:object.x, bottom:object.y}">' +
-        '<rect width="100" height="100" style="fill:skyblue"' +
-        '/>{{object.x}}</svg>'
+        data: function(){
+            return {
+                styleObjectSvg: {
+                    position: 'absolute',
+                },
+                styleObjectShape: {
+                    fill: 'rgba(135, 206, 235, 0.75)'
+                }
+            }
+        },
+        template: '<svg v-bind:style="{' +
+        'position: styleObjectSvg.position, ' + 
+        'width: object.width, ' +
+        'height: object.height, ' + 
+        'left:object.x, bottom:object.y}">' +
+            '<rect v-bind:style="{' + 
+            'fill: styleObjectShape.fill, ' + 
+            'width: object.width,' + 
+            'height: object.height}"/>' +
+        '</svg>'
+    });
+    
+    var appField = new Vue({
+        el: '#field',
+        methods: {
+            updateObjectLocation: function(){
+                var field = document.getElementById('field');
+
+                objectLocations = [];
+                
+                Array.from(field.children).forEach(element => {
+                    var template = {
+                        x0: parseInt(element.style.left),
+                        y0: parseInt(element.style.bottom),
+                        x1: parseInt(element.style.left) + 
+                        parseInt(element.style.width),
+                        y1: parseInt(element.style.bottom) + 
+                        parseInt(element.style.height)
+                    }
+
+                    objectLocations.push(template);
+                });
+
+                setTimeout(this.updateObjectLocation, ALMOST_60FPS);
+            },
+
+            isCollision: function(x0, y0, w, h){
+                var x1 = x0 + w;
+                var y1 = y0 + h;
+
+                for(var i = 0; i < objectLocations.length; i++){
+                    if(objectLocations[i].x0 <= x1 && 
+                    objectLocations[i].x1 >= x0 && 
+                    objectLocations[i].y0 <= y1 && 
+                    objectLocations[i].y1 >= y0){
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+        }
     });
 
     var appDrone = new Vue({
         el: '#drone',
         data: {
             power: true,
-            x: 0,
-            y: 0,
+            x: 50,
+            y: 50,
             speedX: 0,
             speedY: 0,
             left: false,
             up: false,
             right: false,
-            down: false
+            down: false,
+            width: 100,
+            height: 100
         },
         methods: {
             stabilizeX: function(){
                 if(this.speedX > SPEED_MIN){
                     this.setSpeedX(this.speedX - STABILIZE_SPEED);
+                    if(this.speedX < SPEED_MIN){
+                        this.speedX = SPEED_MIN;
+                    }
                 }else if(this.speedX < SPEED_MIN){
                     this.setSpeedX(this.speedX + STABILIZE_SPEED);
+                    if(this.speedX > SPEED_MIN){
+                        this.speedX = SPEED_MIN;
+                    }
                 }
             },
             stabilizeY: function(){
                 if(this.speedY > SPEED_MIN){
                     this.setSpeedY(this.speedY - STABILIZE_SPEED);
+                    if(this.speedY < SPEED_MIN){
+                        this.speedY = SPEED_MIN;
+                    }
                 }else if(this.speedY < SPEED_MIN){
                     this.setSpeedY(this.speedY + STABILIZE_SPEED);
+                    if(this.speedY > SPEED_MIN){
+                        this.speedY = SPEED_MIN;
+                    }
                 }
             },
             updateX: function(){
                 this.x += this.speedX;
+
+                if(appField.isCollision(this.x, this.y, 
+                this.width, this.height)){
+                    this.x -= this.speedX;
+                    /*
+                     * Change to Negative is Bounce
+                     */
+                    this.speedX = -(this.speedX * (PERCENT_100 - ENERGY_LOSS_RATE));
+                    this.speedY = this.speedY * (PERCENT_100 - ENERGY_LOSS_RATE);
+                }
+
                 setTimeout(this.updateX, ALMOST_60FPS);
             },
             updateY: function(){
                 this.y += this.speedY;
+                
+                if(appField.isCollision(this.x, this.y, 
+                this.width, this.height)){
+                    this.y -= this.speedY;
+                    /*
+                     * Change to Negative is Bounce
+                     */
+                    this.speedY = -(this.speedY * (PERCENT_100 - ENERGY_LOSS_RATE));
+                    this.speedX = this.speedX * (PERCENT_100 - ENERGY_LOSS_RATE);
+                }
+
                 setTimeout(this.updateY, ALMOST_60FPS);
             },
             updateSpeed: function(){
@@ -181,5 +323,7 @@
     appDrone.updateX();
     appDrone.updateY();
     appDrone.updateSpeed();
+
+    appField.updateObjectLocation();
 </script>
 </body>
