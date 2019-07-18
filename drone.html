@@ -10,13 +10,10 @@
 <!-- development version, includes helpful console warnings -->
 <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
 </head>
-<body onkeydown="keyEvent(true)" onkeyup="keyEvent(false)">
+<body>
 <div id="drone">
-    x {{x}}<br />
-    y {{y}}<br />
-    speedX {{speedX}}<br />
-    speedY {{speedY}}<br />
-    <span v-if="power">Power on</span>
+    <drone-info v-bind:object="this">
+    </drone-info>
     <svg width="100" height="100"
     v-bind:style="{left:x, bottom: y}">
         <rect width="100" height="100" 
@@ -24,13 +21,37 @@
     </svg>
 </div>
 <script>
+    document.onkeydown = function(){
+        appDrone.keyEvent(true);
+    }
+    document.onkeyup = function(){
+        appDrone.keyEvent(false);
+    }
+
     const ALMOST_60FPS = 16;
 
-    const GRAVITY = 0.5;
+    const GRAVITY = 0.25;
     const SPEED_MIN = 0;
     const SPEED_MAX = 10;
     const ACCELERATION = 1;
     const STABILIZE_SPEED = 0.25;
+
+    const ARRAY_CODE = {
+        spacebar: 32,
+        left: 37,
+        up: 38,
+        right: 39,
+        down: 40
+    }
+
+    Vue.component('drone-info', {
+        props: ['object'],
+        template: '<div>x {{object.x}}<br />' + 
+        'y {{object.y}}<br />' +
+        'speedX {{object.speedX}}<br />' +
+        'speedY {{object.speedY}}<br />' +
+        '<span v-if="object.power">Power on</span></div>'
+    });
 
     var appDrone = new Vue({
         el: '#drone',
@@ -68,6 +89,61 @@
                 this.y += this.speedY;
                 setTimeout(this.updateY, ALMOST_60FPS);
             },
+            updateSpeed: function(){
+                if(this.left){
+                    this.setSpeedX(this.speedX - ACCELERATION);
+                }
+                if(this.right){
+                    this.setSpeedX(this.speedX + ACCELERATION);
+                }
+                if(this.up){
+                    this.setSpeedY(this.speedY + ACCELERATION);
+                }
+                if(!this.power){
+                    this.setSpeedY(this.speedY - GRAVITY);
+                }else if(this.down){
+                    this.setSpeedY(this.speedY - ACCELERATION);
+                }
+
+                if(this.isIdleX()){
+                    this.stabilizeX();
+                }
+                if(this.isIdleY()){
+                    this.stabilizeY();
+                }
+
+                setTimeout(this.updateSpeed, ALMOST_60FPS);
+            },
+            keyEvent: function(isKeyDown){
+                var keyCode = event.keyCode;
+                if(keyCode == ARRAY_CODE.spacebar){
+                    if(isKeyDown){
+                        this.power = !this.power;
+                    }
+                }
+
+                if(!this.power){
+                    this.left = false;
+                    this.up = false;
+                    this.right = false;
+                    this.down = false;
+                    return;
+                }
+
+                switch(keyCode){
+                case ARRAY_CODE.left:
+                    this.left = isKeyDown;
+                    break;
+                case ARRAY_CODE.up:
+                    this.up = isKeyDown;
+                    break;
+                case ARRAY_CODE.right:
+                    this.right = isKeyDown;
+                    break;
+                case ARRAY_CODE.down:
+                    this.down = isKeyDown;
+                }
+            },
             setSpeedX: function(speed){
                 if(speed < (-SPEED_MAX)){
                     this.speedX = -SPEED_MAX;
@@ -99,73 +175,6 @@
 
     appDrone.updateX();
     appDrone.updateY();
-
-    function setSpeed(){
-        if(appDrone.left){
-            appDrone.setSpeedX(appDrone.speedX - ACCELERATION);
-        }
-
-        if(appDrone.right){
-            appDrone.setSpeedX(appDrone.speedX + ACCELERATION);
-        }
-
-        if(appDrone.up){
-            appDrone.setSpeedY(appDrone.speedY + ACCELERATION);
-        }
-
-        if(!appDrone.power){
-            appDrone.setSpeedY(appDrone.speedY - GRAVITY);
-        }else if(appDrone.down){
-            appDrone.setSpeedY(appDrone.speedY - ACCELERATION);
-        }
-
-        if(appDrone.isIdleX()){
-            appDrone.stabilizeX();
-        }
-        if(appDrone.isIdleY()){
-            appDrone.stabilizeY();
-        }
-
-        setTimeout(setSpeed, ALMOST_60FPS);
-    }
-    setSpeed();
-
-    const ARRAY_CODE = {
-        enter: 13,
-        left: 37,
-        up: 38,
-        right: 39,
-        down: 40
-    }
-    function keyEvent(isKeyDown){
-        var keyCode = event.keyCode;
-        if(keyCode == ARRAY_CODE.enter){
-            if(isKeyDown){
-                appDrone.power = !appDrone.power;
-            }
-        }
-
-        if(!appDrone.power){
-            appDrone.left = false;
-            appDrone.up = false;
-            appDrone.right = false;
-            appDrone.down = false;
-            return;
-        }
-
-        switch(keyCode){
-        case ARRAY_CODE.left:
-            appDrone.left = isKeyDown;
-            break;
-        case ARRAY_CODE.up:
-            appDrone.up = isKeyDown;
-            break;
-        case ARRAY_CODE.right:
-            appDrone.right = isKeyDown;
-            break;
-        case ARRAY_CODE.down:
-            appDrone.down = isKeyDown;
-        }
-    }
+    appDrone.updateSpeed();
 </script>
 </body>
