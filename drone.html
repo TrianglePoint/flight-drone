@@ -12,13 +12,10 @@
 </head>
 <body>
 <div id="drone">
-    <drone-info v-bind:object="this">
-    </drone-info>
-    <svg width="100" height="100"
-    v-bind:style="{left:x, bottom: y}">
-        <rect width="100" height="100" 
-        style="background-color: red" />
-    </svg>
+        <drone-info v-bind:object="this"></drone-info>
+        <drone v-bind:object="this"></drone>
+        <drone v-bind:object="this" v-bind:style="{left: -x + 400, bottom: -y + 300}"></drone>
+    </div>
 </div>
 <script>
     document.onkeydown = function(){
@@ -51,6 +48,14 @@
         'speedX {{object.speedX}}<br />' +
         'speedY {{object.speedY}}<br />' +
         '<span v-if="object.power">Power on</span></div>'
+    });
+
+    Vue.component('drone', {
+        props: ['object'],
+        template: '<svg width="100" height="100" ' +
+        'v-bind:style="{left:object.x, bottom:object.y}">' +
+        '<rect width="100" height="100" style="fill:skyblue"' +
+        '/>{{object.x}}</svg>'
     });
 
     var appDrone = new Vue({
