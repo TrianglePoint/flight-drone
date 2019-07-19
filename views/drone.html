@@ -25,6 +25,10 @@
         <drone-info v-bind:object="this"></drone-info>
         <drone v-bind:object="this"></drone>
 </div>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    var socket = io();
+</script>
 <script>
     document.onkeydown = function(){
         appDrone.keyEvent(true);
