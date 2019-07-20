@@ -20,6 +20,11 @@
     <thing v-bind:x="10" v-bind:y="660" 
     v-bind:w="1300" v-bind:h="10" 
     v-bind:rgba="{r: 179, g: 255, b: 102, a: 1}"></thing>
+
+    <!-- Other drone -->
+    <thing v-for="info in infos" v-bind:key="info.id" v-bind:x="info.x" v-bind:y="info.y" 
+    v-bind:w="info.width" v-bind:h="info.height" 
+    v-bind:rgba="{r: 79, g: 255, b: 102, a: 1}"></thing>
 </div>
 <div id="drone">
         <drone-info v-bind:object="this"></drone-info>
@@ -28,8 +33,19 @@
 <script src="/socket.io/socket.io.js"></script>
 <script>
     var socket = io();
-</script>
-<script>
+
+    socket.on('create someone drone', (json)=>{
+        appField.createThing(json);
+    });
+
+    socket.on('update someone drone', (json)=>{
+        appField.updateThing(json);
+    });
+
+    socket.on('remove someone drone', (json)=>{
+        appField.removeThing(json);
+    });
+
     document.onkeydown = function(){
         appDrone.keyEvent(true);
     }
@@ -63,16 +79,8 @@
             return {
                 styleObjectSvg: {
                     position: 'absolute',
-                    width: this.w,
-                    height: this.h,
-                    left: this.x,
-                    bottom: this.y
                 },
                 styleObjectShape: {
-                    width: this.w,
-                    height: this.h,
-                    left: this.x,
-                    bottom: this.y,
                     fill: 'rgba(' + 
                     this.rgba.r + ', ' + 
                     this.rgba.g + ', ' + 
@@ -81,9 +89,11 @@
                 }
             }
         },
-        template: '<svg v-bind:style="styleObjectSvg">' +
-        '<rect v-bind:style="styleObjectShape"' +
-        '/></svg>'
+        template: `<svg v-bind:style="{position: styleObjectSvg.position, 
+        left: x, bottom: y, width: w, height: h}">
+            <rect v-bind:style="{left: x, bottom: y, width: w, height: h, 
+            fill: styleObjectShape.fill}"/>
+        </svg>`
     });
 
     Vue.component('drone-info', {
@@ -128,7 +138,42 @@
     
     var appField = new Vue({
         el: '#field',
+        data: {
+            infos: [
+                /*
+                 * Info of other drone
+                 * default size is 0
+                 */
+            ]
+        },
         methods: {
+            createThing: function(json){
+                this.infos.push({
+                    id: json.id,
+                    x: json.x,
+                    y: json.y,
+                    speedX: json.speedX,
+                    speedY: json.speedY,
+                    width: json.width,
+                    height: json.height
+                });
+            },
+            updateThing: function(json){
+                var index = this.infos.findIndex((info)=>{
+                    return info.id == json.id;
+                });
+
+                if(index != -1){
+                    Vue.set(this.infos, index, json);
+                }
+            },
+            removeThing: function(json){
+                var index = this.infos.findIndex((info)=>{
+                    return info.id == json.id;
+                })
+
+                this.infos.splice(index, 1);
+            },
             updateObjectLocation: function(){
                 var field = document.getElementById('field');
 
@@ -184,6 +229,13 @@
             height: 100
         },
         methods: {
+            transmitFirstDroneData: function(){
+                if(socket.id){
+                    socket.emit('created drone', this.getObjectDataAsJSON(socket.id));
+                }else{
+                    setTimeout(this.transmitFirstDroneData, ALMOST_60FPS);
+                }
+            },
             stabilizeX: function(){
                 if(this.speedX > SPEED_MIN){
                     this.setSpeedX(this.speedX - STABILIZE_SPEED);
@@ -223,6 +275,8 @@
                     this.speedY = this.speedY * (PERCENT_100 - ENERGY_LOSS_RATE);
                 }
 
+                socket.emit('transmit drone data', this.getObjectDataAsJSON(socket.id));
+                
                 setTimeout(this.updateX, ALMOST_60FPS);
             },
             updateY: function(){
@@ -237,6 +291,8 @@
                     this.speedY = -(this.speedY * (PERCENT_100 - ENERGY_LOSS_RATE));
                     this.speedX = this.speedX * (PERCENT_100 - ENERGY_LOSS_RATE);
                 }
+
+                socket.emit('transmit drone data', this.getObjectDataAsJSON(socket.id));
 
                 setTimeout(this.updateY, ALMOST_60FPS);
             },
@@ -295,6 +351,19 @@
                     this.down = isKeyDown;
                 }
             },
+            getObjectDataAsJSON: function(id){
+                var json = {
+                    "id": id,
+                    "x": this.x,
+                    "y": this.y,
+                    "speedX": this.speedX,
+                    "speedY": this.speedY,
+                    "width": this.width,
+                    "height": this.height
+                }
+
+                return json;
+            },
             setSpeedX: function(speed){
                 if(speed < (-SPEED_MAX)){
                     this.speedX = -SPEED_MAX;
@@ -324,6 +393,7 @@
         }
     });
 
+    appDrone.transmitFirstDroneData();
     appDrone.updateX();
     appDrone.updateY();
     appDrone.updateSpeed();

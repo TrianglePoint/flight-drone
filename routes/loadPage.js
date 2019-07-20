@@ -6,7 +6,6 @@ function load_main(req, res){
 
         res.write(body);
         res.end();
-        console.log('Done : load_main()');
     });
 }
 
