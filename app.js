@@ -37,6 +37,37 @@ function removeDroneDataAsJSON(json){
   droneDatas.splice(index, 1);
 }
 
+function isCollision(clientObject){
+
+  for(var i = 0; i < droneDatas.length; i++){
+    let serverData = {
+      id: droneDatas[i].id,
+      x0: droneDatas[i].x,
+      y0: droneDatas[i].y,
+      x1: droneDatas[i].x + droneDatas[i].width,
+      y1: droneDatas[i].y + droneDatas[i].height
+    }
+    let clientData = {
+      id: clientObject.id,
+      x0: clientObject.x,
+      y0: clientObject.y,
+      x1: clientObject.x + clientObject.width,
+      y1: clientObject.y + clientObject.height
+    }
+    
+    if(serverData.id != clientData.id &&
+    serverData.x0 <= clientData.x1 && 
+    serverData.x1 >= clientData.x0 && 
+    serverData.y0 <= clientData.y1 && 
+    serverData.y1 >= clientData.y0){
+
+        return true;
+    }
+  }
+
+  return false;
+}
+
 app.get('/', loadPage.main);
 
 io.on('connection', (socket)=>{
@@ -53,13 +84,19 @@ io.on('connection', (socket)=>{
     }
   });
 
+  socket.on('collision with other drone', (json)=>{
+    io.sockets.to(json.id).emit('change speed', json);
+  });
+
   socket.on('transmit drone data', (json)=>{
     if(json.id){
-      updateDroneData(json);
-      /*
-       * Transmit data to everyone except the provider of data.
-       */
-      socket.broadcast.emit('update someone drone', json);
+      if(!isCollision(json)){
+        updateDroneData(json);
+        /*
+        * Transmit data to everyone except the provider of data.
+        */
+        socket.broadcast.emit('update someone drone', json);
+      }
     }
   });
 

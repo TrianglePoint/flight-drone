@@ -5,24 +5,24 @@
 <body>
 <div id="field">
     <!-- Floor -->
-    <thing v-bind:x="10" v-bind:y="-1" 
+    <thing v-bind:id="'floor'" v-bind:x="10" v-bind:y="-1" 
     v-bind:w="1300" v-bind:h="10" 
     v-bind:rgba="{r: 179, g: 255, b: 102, a: 1}"></thing>
     <!-- Left side wall -->
-    <thing v-bind:x="1" v-bind:y="10" 
+    <thing v-bind:id="'leftWall'" v-bind:x="1" v-bind:y="10" 
     v-bind:w="10" v-bind:h="660" 
     v-bind:rgba="{r: 179, g: 255, b: 102, a: 1}"></thing>
     <!-- Right side wall -->
-    <thing v-bind:x="1310" v-bind:y="10" 
+    <thing v-bind:id="'rightWall'" v-bind:x="1310" v-bind:y="10" 
     v-bind:w="10" v-bind:h="660" 
     v-bind:rgba="{r: 179, g: 255, b: 102, a: 1}"></thing>
     <!-- Ceiling -->
-    <thing v-bind:x="10" v-bind:y="660" 
+    <thing v-bind:id="'ceiling'" v-bind:x="10" v-bind:y="660" 
     v-bind:w="1300" v-bind:h="10" 
     v-bind:rgba="{r: 179, g: 255, b: 102, a: 1}"></thing>
 
     <!-- Other drone -->
-    <thing v-for="info in infos" v-bind:key="info.id" v-bind:x="info.x" v-bind:y="info.y" 
+    <thing v-for="info in infos" v-bind:id="info.id" v-bind:key="info.id" v-bind:x="info.x" v-bind:y="info.y" 
     v-bind:w="info.width" v-bind:h="info.height" 
     v-bind:rgba="{r: 79, g: 255, b: 102, a: 1}"></thing>
 </div>
@@ -46,6 +46,16 @@
         appField.removeThing(json);
     });
 
+    socket.on('change speed', (json)=>{
+        switch(json.dimension){
+        case 'x':
+            appDrone.setSpeedX(json.speed);
+            break;
+        case 'y':
+            appDrone.setSpeedY(json.speed);
+        }
+    });
+
     document.onkeydown = function(){
         appDrone.keyEvent(true);
     }
@@ -62,6 +72,9 @@
     const STABILIZE_SPEED = 0.25;
     const ENERGY_LOSS_RATE = 0.25;
     const PERCENT_100 = 1;
+
+    const SPAWN_MIN = 100;
+    const SPAWN_MAX = 300;
 
     const ARRAY_CODE = {
         spacebar: 32,
@@ -181,6 +194,7 @@
                 
                 Array.from(field.children).forEach(element => {
                     var template = {
+                        id: element.id,
                         x0: parseInt(element.style.left),
                         y0: parseInt(element.style.bottom),
                         x1: parseInt(element.style.left) + 
@@ -195,20 +209,19 @@
                 setTimeout(this.updateObjectLocation, ALMOST_60FPS);
             },
 
-            isCollision: function(x0, y0, w, h){
-                var x1 = x0 + w;
-                var y1 = y0 + h;
+            getCollisionObject: function(location){
 
                 for(var i = 0; i < objectLocations.length; i++){
-                    if(objectLocations[i].x0 <= x1 && 
-                    objectLocations[i].x1 >= x0 && 
-                    objectLocations[i].y0 <= y1 && 
-                    objectLocations[i].y1 >= y0){
-                        return true;
+                    if(objectLocations[i].x0 <= location.x1 && 
+                    objectLocations[i].x1 >= location.x0 && 
+                    objectLocations[i].y0 <= location.y1 && 
+                    objectLocations[i].y1 >= location.y0){
+
+                        return objectLocations[i];
                     }
                 }
 
-                return false;
+                return null;
             }
         }
     });
@@ -217,22 +230,31 @@
         el: '#drone',
         data: {
             power: true,
-            x: 50,
-            y: 50,
+            x: SPAWN_MIN + Math.floor(Math.random() * SPAWN_MAX),
+            y: SPAWN_MIN + Math.floor(Math.random() * SPAWN_MAX),
             speedX: 0,
             speedY: 0,
             left: false,
             up: false,
             right: false,
             down: false,
-            width: 100,
-            height: 100
+            width: 50,
+            height: 50
         },
         methods: {
             transmitFirstDroneData: function(){
-                if(socket.id){
+                let location = {
+                    x0 : this.x,
+                    y0 : this.y,
+                    x1 : this.x + this.width,
+                    y1 : this.y + this.height
+                }
+
+                if(socket.id && appField.getCollisionObject(location) == null){
                     socket.emit('created drone', this.getObjectDataAsJSON(socket.id));
                 }else{
+                    this.setX(SPAWN_MIN + Math.floor(Math.random() * SPAWN_MAX));
+                    this.setY(SPAWN_MIN + Math.floor(Math.random() * SPAWN_MAX));
                     setTimeout(this.transmitFirstDroneData, ALMOST_60FPS);
                 }
             },
@@ -263,35 +285,89 @@
                 }
             },
             updateX: function(){
-                this.x += this.speedX;
-
-                if(appField.isCollision(this.x, this.y, 
-                this.width, this.height)){
-                    this.x -= this.speedX;
-                    /*
-                     * Change to Negative is Bounce
-                     */
-                    this.speedX = -(this.speedX * (PERCENT_100 - ENERGY_LOSS_RATE));
-                    this.speedY = this.speedY * (PERCENT_100 - ENERGY_LOSS_RATE);
+                let collisionObject;
+                let futureLocation = {
+                    x0 : this.x + this.speedX,
+                    y0 : this.y,
+                    x1 : this.x + this.speedX + this.width,
+                    y1 : this.y + this.height
                 }
 
+                collisionObject = appField.getCollisionObject(futureLocation);
+
+                if(collisionObject != null){
+                    let found = appField.infos.find((info)=>{
+                        return info.id == collisionObject.id;
+                    });
+
+                    if(found != null){
+                        /*
+                         * Collision with ohter drone.
+                         */
+                        socket.emit('collision with other drone', {
+                            "dimension": 'x', 
+                            "id": found.id, 
+                            "speed": this.speedX
+                        });
+                        this.setSpeedX(found.speedX * (PERCENT_100 - ENERGY_LOSS_RATE));
+                        this.setSpeedY(this.speedY * (PERCENT_100 - ENERGY_LOSS_RATE));
+                    }else{
+                        /*
+                        * Change to Negative is Bounce
+                        */
+                        this.setSpeedX(-(this.speedX * (PERCENT_100 - ENERGY_LOSS_RATE)));
+                        this.setSpeedY(this.speedY * (PERCENT_100 - ENERGY_LOSS_RATE));
+                    }
+                }else{
+                    /*
+                     * No collision
+                     */
+                    this.setX(this.x + this.speedX);
+                }
                 socket.emit('transmit drone data', this.getObjectDataAsJSON(socket.id));
                 
                 setTimeout(this.updateX, ALMOST_60FPS);
             },
             updateY: function(){
-                this.y += this.speedY;
-                
-                if(appField.isCollision(this.x, this.y, 
-                this.width, this.height)){
-                    this.y -= this.speedY;
-                    /*
-                     * Change to Negative is Bounce
-                     */
-                    this.speedY = -(this.speedY * (PERCENT_100 - ENERGY_LOSS_RATE));
-                    this.speedX = this.speedX * (PERCENT_100 - ENERGY_LOSS_RATE);
+                let collisionObject;
+                let futureLocation = {
+                    x0 : this.x,
+                    y0 : this.y + this.speedY,
+                    x1 : this.x + this.width,
+                    y1 : this.y + this.speedY + this.height
                 }
 
+                collisionObject = appField.getCollisionObject(futureLocation);
+                
+                if(collisionObject != null){                    
+                    let found = appField.infos.find((info)=>{
+                        return info.id == collisionObject.id;
+                    });
+
+                    if(found != null){
+                        /*
+                         * Collision with ohter drone.
+                         */
+                        socket.emit('collision with other drone', {
+                            "dimension": 'y', 
+                            "id": found.id, 
+                            "speed": this.speedY
+                        });
+                        this.setSpeedY(found.speedY * (PERCENT_100 - ENERGY_LOSS_RATE));
+                        this.setSpeedX(this.speedX * (PERCENT_100 - ENERGY_LOSS_RATE));
+                    }else{
+                        /*
+                        * Change to Negative is Bounce
+                        */
+                        this.setSpeedY(-(this.speedY * (PERCENT_100 - ENERGY_LOSS_RATE)));
+                        this.setSpeedX(this.speedX * (PERCENT_100 - ENERGY_LOSS_RATE));
+                    }                    
+                }else{
+                    /*
+                     * No collision
+                     */
+                    this.setY(this.y + this.speedY);
+                }
                 socket.emit('transmit drone data', this.getObjectDataAsJSON(socket.id));
 
                 setTimeout(this.updateY, ALMOST_60FPS);
@@ -363,6 +439,12 @@
                 }
 
                 return json;
+            },
+            setX: function(location){
+                this.x = location;
+            },
+            setY: function(location){
+                this.y = location;
             },
             setSpeedX: function(speed){
                 if(speed < (-SPEED_MAX)){
