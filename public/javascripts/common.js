@@ -5,16 +5,46 @@ document.onkeyup = function(){
     keyEvent(false);
 }
 
+let socket = io();
+
 const CODE_ARRAY = {
     spacebar: 32,
     left: 37,
     up: 38,
     right: 39,
-    down: 40
+    down: 40,
+    t: 84,
+    esc: 27
 }
 
 function keyEvent(isKeyDown){
     var keyCode = event.keyCode;
+
+    switch(keyCode){
+    case CODE_ARRAY.t:
+        /*
+         * Chat mode
+         */
+        if(isKeyDown && !(appChat.isVisible)){
+            appChat.isVisible = true;
+        }
+        break;
+    case CODE_ARRAY.esc:
+        /*
+         * Chat mode end
+         */
+        if(isKeyDown){
+            appChat.isVisible = false;
+        }
+    }
+
+    if(appChat.isVisible){
+        /*
+         * Can't control drone at chat mode
+         */
+        return;
+    }
+
     if(keyCode == CODE_ARRAY.spacebar){
         if(isKeyDown){
             appDrone.power = !appDrone.power;

@@ -31,11 +31,13 @@ function getDroneDataAsId(id){
 }
 
 function removeDroneDataAsJSON(json){
-  var index = droneDatas.findIndex((data)=>{
-      return data.id == json.id;
-  });
-  
-  droneDatas.splice(index, 1);
+  if(json){
+    var index = droneDatas.findIndex((data)=>{
+        return data.id == json.id;
+    });
+    
+    droneDatas.splice(index, 1);
+  }
 }
 
 function isCollision(clientObject){
@@ -73,7 +75,7 @@ app.get('/', loadPage.drone);
 
 app.get('/js/common.js', loadJS.common);
 app.get('/js/drone.js', loadJS.drone);
-app.get('/js/drone.js', loadJS.main);
+app.get('/js/chat.js', loadJS.chat);
 
 io.on('connection', (socket)=>{
   console.log(`a user connected ${socket.id}`);
@@ -102,6 +104,13 @@ io.on('connection', (socket)=>{
         */
         socket.broadcast.emit('update someone drone', json);
       }
+    }
+  });
+
+  socket.on('send message', (json)=>{
+    if(json.id){
+      json.id = json.id.substring(0, 4);
+      io.emit('new message', json);
     }
   });
 

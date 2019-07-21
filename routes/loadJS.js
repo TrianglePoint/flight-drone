@@ -18,7 +18,17 @@ function load_drone(req, res){
     });
 }
 
+function load_chat(req, res){
+    fs.readFile('./public/javascripts/chat.js', (err, body)=>{
+        if(err) throw err;
+
+        res.write(body);
+        res.end();
+    });
+}
+
 module.exports = {
     common: load_common,
     drone: load_drone,
+    chat: load_chat
 }

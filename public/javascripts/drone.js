@@ -1,4 +1,17 @@
-var socket = io();
+const ALMOST_60FPS = 16;
+
+const GRAVITY = 0.25;
+const SPEED_MIN = 0;
+const SPEED_MAX = 10;
+const ACCELERATION = 1;
+const STABILIZE_SPEED = 0.25;
+const ENERGY_LOSS_RATE = 0.25;
+const PERCENT_100 = 1;
+
+const SPAWN_MIN = 100;
+const SPAWN_MAX = 300;
+
+var objectLocations = [];
 
 socket.on('create someone drone', (json)=>{
     appField.createThing(json);
@@ -22,21 +35,6 @@ socket.on('change speed', (json)=>{
     }
 });
 
-const ALMOST_60FPS = 16;
-
-const GRAVITY = 0.25;
-const SPEED_MIN = 0;
-const SPEED_MAX = 10;
-const ACCELERATION = 1;
-const STABILIZE_SPEED = 0.25;
-const ENERGY_LOSS_RATE = 0.25;
-const PERCENT_100 = 1;
-
-const SPAWN_MIN = 100;
-const SPAWN_MAX = 300;
-
-var objectLocations = [];
-
 Vue.component('thing', {
     props: ['x', 'y', 'w', 'h', 'rgba'],
     data: function(){ 
@@ -58,22 +56,6 @@ Vue.component('thing', {
         <rect v-bind:style="{left: x, bottom: y, width: w, height: h, 
         fill: styleObjectShape.fill}"/>
     </svg>`
-});
-
-Vue.component('drone-info', {
-    props: ['object'],
-    data: function(){
-        return {
-            styleObject: {
-                backgroundColor: 'blueviolet'
-            }
-        }
-    },
-    template: '<div v-bind:style="styleObject">x {{object.x}}<br />' + 
-    'y {{object.y}}<br />' +
-    'speedX {{object.speedX}}<br />' +
-    'speedY {{object.speedY}}<br />' +
-    '<span v-if="object.power">Power on</span></div>'
 });
 
 Vue.component('drone', {
@@ -132,11 +114,13 @@ var appField = new Vue({
             }
         },
         removeThing: function(json){
-            var index = this.infos.findIndex((info)=>{
-                return info.id == json.id;
-            })
+            if(json){
+                var index = this.infos.findIndex((info)=>{
+                    return info.id == json.id;
+                })
 
-            this.infos.splice(index, 1);
+                this.infos.splice(index, 1);
+            }
         },
         updateObjectLocation: function(){
             var field = document.getElementById('field');
