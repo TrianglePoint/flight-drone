@@ -1,4 +1,5 @@
-const MESSAGE_MAX = 10;
+const MESSAGE_COUNT_MAX = 10;
+const MESSAGE_LENGTH_MAX = 50;
 
 socket.on('new message', (json)=>{
     appChat.addMessage(json);
@@ -6,16 +7,33 @@ socket.on('new message', (json)=>{
 
 Vue.component('chat', {
     props: ['message'],
-    template: `<table>
+    data: ()=>{
+        return {
+            styleObject: {
+                marginLeft: 20
+            }
+        }
+    },
+    template: `<table v-bind:style="styleObject">
         <tr>
-            <td>{{message.id}}</td><td>{{message.msg}}</td>
+            <td>{{(message.id == 'SYSTEM' ? '' : message.id + ': ')}}</td>
+            <td v-bind:style="{
+                fontWeight: (message.id == 'SYSTEM' ? 'bold' : 'normal')
+            }">{{message.msg}}</td>
         </tr>
     </table>`
 });
 
 Vue.component('chat-input', {
     props: ['clientMsg'],
-    template: `<form onsubmit="return submitMessage(this)">
+    data: ()=>{
+        return {
+            styleObject: {
+                marginLeft: 20
+            }
+        }
+    },
+    template: `<form v-bind:style="styleObject" onsubmit="return submitMessage(this)">
         <input placeholder="chat..." v-focus/>
     </form>`,
     directives: {
@@ -54,7 +72,7 @@ var appChat = new Vue({
             });
         },
         addMessage: function(json){
-            if(this.messages.length >= MESSAGE_MAX){
+            if(this.messages.length >= MESSAGE_COUNT_MAX){
                 /*
                  * Remove first message
                  */
@@ -75,7 +93,9 @@ var appChat = new Vue({
 function submitMessage(form){
     let input = form.querySelector('input');
 
-    appChat.pushMessage(input.value);
+    if(input.value.length > 0 && input.value.length <= MESSAGE_LENGTH_MAX){
+        appChat.pushMessage(input.value);
+    }
     input.value = '';
 
     return false;

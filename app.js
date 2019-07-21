@@ -71,6 +71,10 @@ function isCollision(clientObject){
   return false;
 }
 
+function getNickname(id){
+  return id.substring(0, 4);
+}
+
 app.get('/', loadPage.drone);
 
 app.get('/js/common.js', loadJS.common);
@@ -79,6 +83,10 @@ app.get('/js/chat.js', loadJS.chat);
 
 io.on('connection', (socket)=>{
   console.log(`a user connected ${socket.id}`);
+  io.emit('new message', {
+    "id": 'SYSTEM',
+    "msg": `${getNickname(socket.id)} said, "Hi".`
+  });
 
   for(var i = 0; i < droneDatas.length; i++){
     socket.emit('create someone drone', droneDatas[i]);
@@ -109,13 +117,18 @@ io.on('connection', (socket)=>{
 
   socket.on('send message', (json)=>{
     if(json.id){
-      json.id = json.id.substring(0, 4);
+      json.id = getNickname(json.id);
       io.emit('new message', json);
     }
   });
 
   socket.on('disconnect', ()=>{
     console.log(`user disconnected ${socket.id}`);
+    io.emit('new message', {
+      "id": 'SYSTEM',
+      "msg": `${getNickname(socket.id)} said, "Bye".`
+    });
+
     var found = getDroneDataAsId(socket.id);
 
     socket.broadcast.emit('remove someone drone', found);
