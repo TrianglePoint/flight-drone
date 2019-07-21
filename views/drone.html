@@ -5,26 +5,31 @@
 <body>
 <div id="field">
     <!-- Floor -->
-    <thing v-bind:id="'floor'" v-bind:x="10" v-bind:y="-1" 
+    <thing v-bind:id="'floor'" 
+    v-bind:power="true" v-bind:x="10" v-bind:y="-1" 
     v-bind:w="1300" v-bind:h="10" 
-    v-bind:rgba="{r: 179, g: 255, b: 102, a: 1}"></thing>
+    v-bind:hsla="{h: 100, s: 100, l: 70, a: 1}"></thing>
     <!-- Left side wall -->
-    <thing v-bind:id="'leftWall'" v-bind:x="1" v-bind:y="10" 
+    <thing v-bind:id="'leftWall'" 
+    v-bind:power="true" v-bind:x="1" v-bind:y="10" 
     v-bind:w="10" v-bind:h="660" 
-    v-bind:rgba="{r: 179, g: 255, b: 102, a: 1}"></thing>
+    v-bind:hsla="{h: 100, s: 100, l: 70, a: 1}"></thing>
     <!-- Right side wall -->
-    <thing v-bind:id="'rightWall'" v-bind:x="1310" v-bind:y="10" 
+    <thing v-bind:id="'rightWall'" 
+    v-bind:power="true" v-bind:x="1310" v-bind:y="10" 
     v-bind:w="10" v-bind:h="660" 
-    v-bind:rgba="{r: 179, g: 255, b: 102, a: 1}"></thing>
+    v-bind:hsla="{h: 100, s: 100, l: 70, a: 1}"></thing>
     <!-- Ceiling -->
-    <thing v-bind:id="'ceiling'" v-bind:x="10" v-bind:y="660" 
+    <thing v-bind:id="'ceiling'" 
+    v-bind:power="true" v-bind:x="10" v-bind:y="660" 
     v-bind:w="1300" v-bind:h="10" 
-    v-bind:rgba="{r: 179, g: 255, b: 102, a: 1}"></thing>
+    v-bind:hsla="{h: 100, s: 100, l: 70, a: 1}"></thing>
 
     <!-- Other drone -->
-    <thing v-for="info in infos" v-bind:id="info.id" v-bind:key="info.id" v-bind:x="info.x" v-bind:y="info.y" 
+    <thing v-for="info in infos" v-bind:key="info.id" v-bind:id="info.id" 
+    v-bind:power="info.power" v-bind:x="info.x" v-bind:y="info.y" 
     v-bind:w="info.width" v-bind:h="info.height" 
-    v-bind:rgba="{r: 79, g: 255, b: 102, a: 1}"></thing>
+    v-bind:hsla="{h: 128, s: 100, l: 65, a: 0.75}"></thing>
 </div>
 <div id="chat">
     <chat v-for="message in messages" v-bind:key="message.number" v-bind:message="message"></chat>

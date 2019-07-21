@@ -17,6 +17,14 @@ const CODE_ARRAY = {
     esc: 27
 }
 
+const POWER_COLOR = {
+    /*
+     * Drone color ('l' of hsl)
+     */
+    on: 73,
+    off: 33
+}
+
 function keyEvent(isKeyDown){
     var keyCode = event.keyCode;
 
@@ -49,6 +57,11 @@ function keyEvent(isKeyDown){
         if(isKeyDown){
             appDrone.power = !appDrone.power;
         }
+        if(appDrone.power){
+            appDrone.hsla.l = POWER_COLOR.on;
+        }else{
+            appDrone.hsla.l = POWER_COLOR.off;
+        }
     }
 
     if(!appDrone.power){
@@ -56,6 +69,7 @@ function keyEvent(isKeyDown){
         appDrone.up = false;
         appDrone.right = false;
         appDrone.down = false;
+        
         return;
     }
 

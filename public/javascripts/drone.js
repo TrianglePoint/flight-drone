@@ -36,25 +36,22 @@ socket.on('change speed', (json)=>{
 });
 
 Vue.component('thing', {
-    props: ['x', 'y', 'w', 'h', 'rgba'],
+    props: ['power', 'x', 'y', 'w', 'h', 'hsla'],
     data: function(){ 
         return {
             styleObjectSvg: {
                 position: 'absolute',
-            },
-            styleObjectShape: {
-                fill: 'rgba(' + 
-                this.rgba.r + ', ' + 
-                this.rgba.g + ', ' + 
-                this.rgba.b + ', ' +
-                this.rgba.a + ')'
             }
         }
     },
     template: `<svg v-bind:style="{position: styleObjectSvg.position, 
     left: x, bottom: y, width: w, height: h}">
         <rect v-bind:style="{left: x, bottom: y, width: w, height: h, 
-        fill: styleObjectShape.fill}"/>
+        fill: 'hsla(' + 
+        hsla.h + ', ' + 
+        hsla.s + '%, ' + 
+        (power ? hsla.l : hsla.l - 40) + '%, ' + 
+        hsla.a + ')'}"/>
     </svg>`
 });
 
@@ -63,23 +60,24 @@ Vue.component('drone', {
     data: function(){
         return {
             styleObjectSvg: {
-                position: 'absolute',
-            },
-            styleObjectShape: {
-                fill: 'rgba(135, 206, 235, 0.75)'
+                position: 'absolute'
             }
         }
     },
-    template: '<svg v-bind:style="{' +
-    'position: styleObjectSvg.position, ' + 
-    'width: object.width, ' +
-    'height: object.height, ' + 
-    'left:object.x, bottom:object.y}">' +
-        '<rect v-bind:style="{' + 
-        'fill: styleObjectShape.fill, ' + 
-        'width: object.width,' + 
-        'height: object.height}"/>' +
-    '</svg>'
+    template: `<svg v-bind:style="{
+    position: styleObjectSvg.position,  
+    width: object.width, 
+    height: object.height,  
+    left:object.x, bottom:object.y}">
+        <rect v-bind:style="{  
+        width: object.width, 
+        height: object.height,
+        fill: 'hsla(' + 
+        object.hsla.h + ', ' + 
+        object.hsla.s + '%, ' + 
+        object.hsla.l + '%, ' + 
+        object.hsla.a + ')'}"/>
+    </svg>`
 });
 
 var appField = new Vue({
@@ -96,6 +94,7 @@ var appField = new Vue({
         createThing: function(json){
             this.infos.push({
                 id: json.id,
+                power: json.power,
                 x: json.x,
                 y: json.y,
                 speedX: json.speedX,
@@ -174,7 +173,13 @@ var appDrone = new Vue({
         right: false,
         down: false,
         width: 50,
-        height: 50
+        height: 50,
+        hsla: {
+            h: 197,
+            s: 71,
+            l: 73,
+            a: 0.75
+        }
     },
     methods: {
         transmitFirstDroneData: function(){
@@ -335,6 +340,7 @@ var appDrone = new Vue({
         getObjectDataAsJSON: function(id){
             var json = {
                 "id": id,
+                "power": this.power,
                 "x": this.x,
                 "y": this.y,
                 "speedX": this.speedX,
