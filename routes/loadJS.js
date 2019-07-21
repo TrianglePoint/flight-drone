@@ -1,6 +1,15 @@
 const fs = require('fs');
 
-function load_main(req, res){
+function load_common(req, res){
+    fs.readFile('./public/javascripts/common.js', (err, body)=>{
+        if(err) throw err;
+
+        res.write(body);
+        res.end();
+    });
+}
+
+function load_drone(req, res){
     fs.readFile('./public/javascripts/drone.js', (err, body)=>{
         if(err) throw err;
 
@@ -10,5 +19,6 @@ function load_main(req, res){
 }
 
 module.exports = {
-    main: load_main
+    common: load_common,
+    drone: load_drone,
 }

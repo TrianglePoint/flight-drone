@@ -22,13 +22,6 @@ socket.on('change speed', (json)=>{
     }
 });
 
-document.onkeydown = function(){
-    appDrone.keyEvent(true);
-}
-document.onkeyup = function(){
-    appDrone.keyEvent(false);
-}
-
 const ALMOST_60FPS = 16;
 
 const GRAVITY = 0.25;
@@ -41,14 +34,6 @@ const PERCENT_100 = 1;
 
 const SPAWN_MIN = 100;
 const SPAWN_MAX = 300;
-
-const ARRAY_CODE = {
-    spacebar: 32,
-    left: 37,
-    up: 38,
-    right: 39,
-    down: 40
-}
 
 var objectLocations = [];
 
@@ -362,36 +347,6 @@ var appDrone = new Vue({
             }
 
             setTimeout(this.updateSpeed, ALMOST_60FPS);
-        },
-        keyEvent: function(isKeyDown){
-            var keyCode = event.keyCode;
-            if(keyCode == ARRAY_CODE.spacebar){
-                if(isKeyDown){
-                    this.power = !this.power;
-                }
-            }
-
-            if(!this.power){
-                this.left = false;
-                this.up = false;
-                this.right = false;
-                this.down = false;
-                return;
-            }
-
-            switch(keyCode){
-            case ARRAY_CODE.left:
-                this.left = isKeyDown;
-                break;
-            case ARRAY_CODE.up:
-                this.up = isKeyDown;
-                break;
-            case ARRAY_CODE.right:
-                this.right = isKeyDown;
-                break;
-            case ARRAY_CODE.down:
-                this.down = isKeyDown;
-            }
         },
         getObjectDataAsJSON: function(id){
             var json = {

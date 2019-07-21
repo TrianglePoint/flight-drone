@@ -69,8 +69,10 @@ function isCollision(clientObject){
   return false;
 }
 
-app.get('/', loadPage.main);
+app.get('/', loadPage.drone);
 
+app.get('/js/common.js', loadJS.common);
+app.get('/js/drone.js', loadJS.drone);
 app.get('/js/drone.js', loadJS.main);
 
 io.on('connection', (socket)=>{
