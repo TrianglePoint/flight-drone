@@ -3,6 +3,7 @@ const http = require('http').createServer(app);
 const io = require('socket.io')(http);
 
 const loadPage = require(`${__dirname}/routes/loadPage`);
+const loadJS = require(`${__dirname}/routes/loadJS`);
 
 let port = 3000;
 
@@ -69,6 +70,8 @@ function isCollision(clientObject){
 }
 
 app.get('/', loadPage.main);
+
+app.get('/js/drone.js', loadJS.main);
 
 io.on('connection', (socket)=>{
   console.log(`a user connected ${socket.id}`);
